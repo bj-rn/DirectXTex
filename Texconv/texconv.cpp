@@ -42,7 +42,7 @@
 #include "DirectXPackedVector.h"
 
 //Uncomment to add support for OpenEXR (.exr)
-//#define USE_OPENEXR
+#define USE_OPENEXR
 
 #ifdef USE_OPENEXR
 // See <https://github.com/Microsoft/DirectXTex/wiki/Adding-OpenEXR> for details

@@ -339,6 +339,7 @@
     <ClCompile Include="DirectXTexConvert.cpp" />
     <ClCompile Include="DirectXTexD3D11.cpp" />
     <ClCompile Include="DirectXTexDDS.cpp" />
+    <ClCompile Include="DirectXTexEXR.cpp" />
     <ClCompile Include="DirectXTexFlipRotate.cpp" />
     <ClCompile Include="DirectXTexHDR.cpp" />
     <ClCompile Include="DirectXTexImage.cpp" />
@@ -359,6 +360,7 @@
     <ClCompile Include="DirectXTexWIC.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="Shaders\BC6HEncode.hlsl">
       <FileType>Document</FileType>
     </None>
@@ -370,7 +372,9 @@
     <None Include="Shaders\CompileShaders.cmd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\openexr-msvc-x64.2.3.0.8788\build\native\OpenEXR-msvc-x64.targets" Condition="Exists('..\packages\openexr-msvc-x64.2.3.0.8788\build\native\OpenEXR-msvc-x64.targets')" />
+  </ImportGroup>
   <Target Name="ATGEnsureShaders" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <_ATGFXCPath>$(WindowsSDK_ExecutablePath_x64.Split(';')[0])</_ATGFXCPath>
@@ -389,5 +393,11 @@
     </ItemGroup>
     <Delete Files="@(_ATGShaderHeaders)" />
     <Delete Files="@(_ATGShaderSymbols)" />
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\openexr-msvc-x64.2.3.0.8788\build\native\OpenEXR-msvc-x64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\openexr-msvc-x64.2.3.0.8788\build\native\OpenEXR-msvc-x64.targets'))" />
   </Target>
 </Project>

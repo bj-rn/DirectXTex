@@ -95,6 +95,9 @@
     <ClCompile Include="DirectXTexHDR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXTexEXR.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="BC.h">
@@ -111,5 +114,6 @@
     <None Include="Shaders\BC7Encode.hlsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
