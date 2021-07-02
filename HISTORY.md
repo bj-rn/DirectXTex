@@ -6,6 +6,34 @@ Release available for download on [GitHub](https://github.com/microsoft/DirectXT
 
 ## Release History
 
+### June 9, 2021
+* Minor bug fix for metadata behavior when using ``DDS_FLAGS_NO_16BPP`` flag for B5G6R5 content
+* texdiag: added ``-c`` and ``-t`` switches for diff command
+* texconv: Fixed bug in ``-m`` switch handling when resizing changes the max mipmap count
+* texconv et al: improved ``-flist`` switch to support wildcards and file exclusions
+* texconv et al: Added 'BGR' alias to ``-f`` switch for the B8G8R8X8_UNORM format
+* WICTextureLoader / DDSTextureLoader12 updated to use typed enum bitmask flags for loadFlags parameter
+* Minor code review
+
+### April 6, 2021
+* DDS reader updated to accept nVidia Texture Tool v1 single-channel and dual-channel files marked as RGB instead of LUMINANCE
+* Fixed TGA reader regression with files smaller than 26 bytes total
+* Removed use of ``CreateStreamOnHGlobal``, ``CreateStreamOverRandomAccessStream``, and ``SHCreateMemStream`` for WICToMemory functions
+* Fix for the DirectX 12 ``CaptureTexture`` for reserved and MSAA resources
+* Minor code and project cleanup
+* texassemble: added ``-stripmips`` switch
+* texassemble, texconv: the ``swizzle`` switch now accepts ``0`` and ``1`` values in swizzle masks
+* texconv: added "709toDisplayP3" and "DisplayP3to709" to ``-rotatecolor`` switch
+* texconv: Fixed ``-reconstructz`` for UNORM formats
+* texassemble, texconv, texdiag: Updated with  descriptions for HRESULT failure codes, and always uses exit code 1 on failure
+
+### January 9, 2021
+* Windows Subsystem for Linux support
+* Code review for improved conformance
+* CMake updated to support package install
+* texassemble: Merge command now supports ``-swizzle`` option
+* texconv: Updated with ``-r:keep`` and ``-swizzle`` options
+
 ### November 11, 2020
 * Use ``SHCreateMemStream`` instead of ``CreateStreamOnHGlobal`` for Win32 on Windows 8.x or Windows 10
 * Updated D3DX12 internal copy with latest change from GitHub

@@ -7,7 +7,7 @@
 // a full-featured DDS file reader, writer, and texture processing pipeline see
 // the 'Texconv' sample and the 'DirectXTex' library.
 //
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 //
 // http://go.microsoft.com/fwlink/?LinkId=248926
@@ -18,9 +18,11 @@
 
 #include <d3d9types.h>
 
-#include <assert.h>
 #include <algorithm>
+#include <cassert>
+#include <cstring>
 #include <memory>
+#include <new>
 
 #include <wrl/client.h>
 
@@ -126,6 +128,8 @@ namespace
             return E_POINTER;
         }
 
+        *bitSize = 0;
+
         if (ddsDataSize > UINT32_MAX)
         {
             return E_FAIL;
@@ -183,6 +187,8 @@ namespace
             return E_POINTER;
         }
 
+        *bitSize = 0;
+
         // open the file
 #if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
         ScopedHandle hFile(safe_handle(CreateFile2(fileName,
@@ -232,19 +238,21 @@ namespace
         }
 
         // read the data in
-        DWORD BytesRead = 0;
+        DWORD bytesRead = 0;
         if (!ReadFile(hFile.get(),
             ddsData.get(),
             fileInfo.EndOfFile.LowPart,
-            &BytesRead,
+            &bytesRead,
             nullptr
         ))
         {
+            ddsData.reset();
             return HRESULT_FROM_WIN32(GetLastError());
         }
 
-        if (BytesRead < fileInfo.EndOfFile.LowPart)
+        if (bytesRead < fileInfo.EndOfFile.LowPart)
         {
+            ddsData.reset();
             return E_FAIL;
         }
 
@@ -252,6 +260,7 @@ namespace
         auto dwMagicNumber = *reinterpret_cast<const uint32_t*>(ddsData.get());
         if (dwMagicNumber != DDS_MAGIC)
         {
+            ddsData.reset();
             return E_FAIL;
         }
 
@@ -261,6 +270,7 @@ namespace
         if (hdr->size != sizeof(DDS_HEADER) ||
             hdr->ddspf.size != sizeof(DDS_PIXELFORMAT))
         {
+            ddsData.reset();
             return E_FAIL;
         }
 
@@ -269,6 +279,7 @@ namespace
             (MAKEFOURCC('D', 'X', '1', '0') == hdr->ddspf.fourCC))
         {
             // We don't support the new DX10 header for Direct3D 9
+            ddsData.reset();
             return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
         }
 
@@ -574,34 +585,8 @@ namespace
                 {
                     return D3DFMT_A8R3G3B2;
                 }
-                break;
 
-            case 8:
-                if (ISBITMASK(0xe0, 0x1c, 0x03, 0))
-                {
-                    return D3DFMT_R3G3B2;
-                }
-
-                // Paletted texture formats are typically not supported on modern video cards aka D3DFMT_P8, D3DFMT_A8P8
-                break;
-            }
-        }
-        else if (ddpf.flags & DDS_LUMINANCE)
-        {
-            if (8 == ddpf.RGBBitCount)
-            {
-                if (ISBITMASK(0x0f, 0, 0, 0xf0))
-                {
-                    return D3DFMT_A4L4;
-                }
-                if (ISBITMASK(0xff, 0, 0, 0))
-                {
-                    return D3DFMT_L8;
-                }
-            }
-
-            if (16 == ddpf.RGBBitCount)
-            {
+                // NVTT versions 1.x wrote these as RGB instead of LUMINANCE
                 if (ISBITMASK(0xffff, 0, 0, 0))
                 {
                     return D3DFMT_L16;
@@ -610,7 +595,53 @@ namespace
                 {
                     return D3DFMT_A8L8;
                 }
+                break;
 
+            case 8:
+                if (ISBITMASK(0xe0, 0x1c, 0x03, 0))
+                {
+                    return D3DFMT_R3G3B2;
+                }
+
+                // NVTT versions 1.x wrote these as RGB instead of LUMINANCE
+                if (ISBITMASK(0xff, 0, 0, 0))
+                {
+                    return D3DFMT_L8;
+                }
+
+                // Paletted texture formats are typically not supported on modern video cards aka D3DFMT_P8, D3DFMT_A8P8
+                break;
+            }
+        }
+        else if (ddpf.flags & DDS_LUMINANCE)
+        {
+            switch (ddpf.RGBBitCount)
+            {
+            case 16:
+                if (ISBITMASK(0xffff, 0, 0, 0))
+                {
+                    return D3DFMT_L16;
+                }
+                if (ISBITMASK(0x00ff, 0, 0, 0xff00))
+                {
+                    return D3DFMT_A8L8;
+                }
+                break;
+
+            case 8:
+                if (ISBITMASK(0x0f, 0, 0, 0xf0))
+                {
+                    return D3DFMT_A4L4;
+                }
+                if (ISBITMASK(0xff, 0, 0, 0))
+                {
+                    return D3DFMT_L8;
+                }
+                if (ISBITMASK(0x00ff, 0, 0, 0xff00))
+                {
+                    return D3DFMT_A8L8; // Some DDS writers assume the bitcount should be 8 instead of 16
+                }
+                break;
             }
         }
         else if (ddpf.flags & DDS_ALPHA)
@@ -622,16 +653,9 @@ namespace
         }
         else if (ddpf.flags & DDS_BUMPDUDV)
         {
-            if (16 == ddpf.RGBBitCount)
+            switch (ddpf.RGBBitCount)
             {
-                if (ISBITMASK(0x00ff, 0xff00, 0, 0))
-                {
-                    return D3DFMT_V8U8;
-                }
-            }
-
-            if (32 == ddpf.RGBBitCount)
-            {
+            case 32:
                 if (ISBITMASK(0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000))
                 {
                     return D3DFMT_Q8W8V8U8;
@@ -644,24 +668,33 @@ namespace
                 {
                     return D3DFMT_A2W10V10U10;
                 }
+                break;
+
+            case 16:
+                if (ISBITMASK(0x00ff, 0xff00, 0, 0))
+                {
+                    return D3DFMT_V8U8;
+                }
+                break;
             }
         }
         else if (ddpf.flags & DDS_BUMPLUMINANCE)
         {
-            if (16 == ddpf.RGBBitCount)
+            switch (ddpf.RGBBitCount)
             {
-                if (ISBITMASK(0x001f, 0x03e0, 0xfc00, 0))
-                {
-                    return D3DFMT_L6V5U5;
-                }
-            }
-
-            if (32 == ddpf.RGBBitCount)
-            {
+            case 32:
                 if (ISBITMASK(0x000000ff, 0x0000ff00, 0x00ff0000, 0))
                 {
                     return D3DFMT_X8L8V8U8;
                 }
+                break;
+
+            case 16:
+                if (ISBITMASK(0x001f, 0x03e0, 0xfc00, 0))
+                {
+                    return D3DFMT_L6V5U5;
+                }
+                break;
             }
         }
         else if (ddpf.flags & DDS_FOURCC)
